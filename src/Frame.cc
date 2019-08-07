@@ -95,6 +95,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     if (mvKeys.empty())
         return;
+
     // Undistort特征点，这里没有对双目进行校正，因为要求输入的图像已经进行极线校正
     UndistortKeyPoints();
 
@@ -105,7 +106,6 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     // 对应的mappoints
     mvpMapPoints = vector<MapPoint *>(N, static_cast<MapPoint *>(NULL));
     mvbOutlier = vector<bool>(N, false);
-
 
     // This is done only for the first Frame (or after a change in the calibration)
     if (mbInitialComputations) {
@@ -190,8 +190,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
 // 单目初始化
 Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor *extractor,
-             ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf,
-             const float &thDepth)
+             ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     : mpORBvocabulary(voc), mpORBextractorLeft(extractor),
       mpORBextractorRight(static_cast<ORBextractor *>(NULL)), mTimeStamp(timeStamp), mK(K.clone()),
       mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)

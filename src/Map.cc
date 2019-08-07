@@ -60,8 +60,9 @@ void Map::EraseMapPoint(MapPoint *pMP)
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.erase(pMP);
 
-    // TODO: This only erase the pointer.
-    // Delete the MapPoint
+    // TODO: This only erase the pointer. Delete the MapPoint
+    //! 这里MP内存没有释放,程序结束后回收
+//    delete pMP;
 }
 
 /**

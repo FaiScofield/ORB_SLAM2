@@ -184,8 +184,7 @@ void LocalMapping::ProcessNewKeyFrame()
         MapPoint *pMP = vpMapPointMatches[i];
         if (pMP) {
             if (!pMP->isBad()) {
-                // 非当前帧生成的MapPoints
-                // 为当前帧在tracking过程跟踪到的MapPoints更新属性
+                // 非当前帧生成的MapPoints为当前帧在tracking过程跟踪到的MapPoints更新属性
                 if (!pMP->IsInKeyFrame(mpCurrentKeyFrame)) {
                     // 添加观测
                     pMP->AddObservation(mpCurrentKeyFrame, i);

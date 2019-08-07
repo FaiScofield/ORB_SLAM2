@@ -807,6 +807,7 @@ void Tracking::CreateInitialMapMonocular()
         pMP->UpdateNormalAndDepth();
 
         // Fill Current Frame structure
+        //!@Vance: 首帧的mvpMapPoints属性不需要添加吗？
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
@@ -834,7 +835,7 @@ void Tracking::CreateInitialMapMonocular()
     float invMedianDepth = 1.0f / medianDepth;
 
     if (medianDepth < 0 || pKFcur->TrackedMapPoints(1) < 100) {
-        cout << "Wrong initialization, reseting..." << endl;
+        cerr << "Wrong initialization, reseting..." << endl;
         Reset();
         return;
     }

@@ -49,6 +49,7 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map *pMap)
     mNormalVector = cv::Mat::zeros(3, 1, CV_32F);
 
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
+    // 地图点会再不通线程里创建，所以用Map里面的锁来管理，防止id号紊乱
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId = nNextId++;
 }
@@ -120,7 +121,7 @@ KeyFrame *MapPoint::GetReferenceKeyFrame()
 /**
  * @brief 添加观测
  *
- * 记录哪些KeyFrame的那个特征点能观测到该MapPoint \n
+ * 记录哪些KeyFrame的哪个特征点能观测到该MapPoint \n
  * 并增加观测的相机数目nObs，单目+1，双目或者grbd+2
  * 这个函数是建立关键帧共视关系的核心函数，能共同观测到某些MapPoints的关键帧是共视关键帧
  * @param pKF KeyFrame
@@ -131,6 +132,7 @@ void MapPoint::AddObservation(KeyFrame *pKF, size_t idx)
     unique_lock<mutex> lock(mMutexFeatures);
     if (mObservations.count(pKF))
         return;
+
     // 记录下能观测到该MapPoint的KF和该MapPoint在KF中的索引
     mObservations[pKF] = idx;
 
@@ -189,15 +191,12 @@ void MapPoint::SetBadFlag()
         unique_lock<mutex> lock1(mMutexFeatures);
         unique_lock<mutex> lock2(mMutexPos);
         mbBad = true;
-        obs =
-            mObservations;  // 把mObservations转存到obs，obs和mObservations里存的是指针，赋值过程为浅拷贝
+        obs = mObservations;  // 把mObservations转存到obs，obs和mObservations里存的是指针，赋值过程为浅拷贝
         mObservations.clear();  // 把mObservations指向的内存释放，obs作为局部变量之后自动删除
     }
-    for (map<KeyFrame *, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend;
-         mit++) {
+    for (auto mit = obs.begin(), mend = obs.end(); mit != mend; mit++) {
         KeyFrame *pKF = mit->first;
-        pKF->EraseMapPointMatch(
-            mit->second);  // 告诉可以观测到该MapPoint的KeyFrame，该MapPoint被删了
+        pKF->EraseMapPointMatch(mit->second);  // 告诉可以观测到该MapPoint的KeyFrame，该MapPoint被删了
     }
 
     mpMap->EraseMapPoint(this);  // 擦除该MapPoint申请的内存
@@ -351,6 +350,7 @@ void MapPoint::ComputeDistinctiveDescriptors()
     for (size_t i = 0; i < N; i++) {
         // 第i个描述子到其它所有所有描述子之间的距离
         // vector<int> vDists(Distances[i],Distances[i]+N);
+        //!@Vance: 有重复计算，区间可以改成[begin()+i+1,end]
         vector<int> vDists(Distances[i].begin(), Distances[i].end());
         sort(vDists.begin(), vDists.end());
 
@@ -427,12 +427,11 @@ void MapPoint::UpdateNormalAndDepth()
 
     cv::Mat normal = cv::Mat::zeros(3, 1, CV_32F);
     int n = 0;
-    for (map<KeyFrame *, size_t>::iterator mit = observations.begin(), mend = observations.end();
-         mit != mend; mit++) {
+    for (auto mit = observations.begin(), mend = observations.end(); mit != mend; mit++) {
         KeyFrame *pKF = mit->first;
         cv::Mat Owi = pKF->GetCameraCenter();
         cv::Mat normali = mWorldPos - Owi;
-        normal = normal + normali / cv::norm(normali);  // 对所有关键帧对该点的观测方向归一化为单位向量进行求和
+        normal += normali / cv::norm(normali);  // 对所有关键帧对该点的观测方向归一化为单位向量进行求和
         n++;
     }
 
@@ -447,7 +446,7 @@ void MapPoint::UpdateNormalAndDepth()
         // 另见PredictScale函数前的注释
         mfMaxDistance = dist * levelScaleFactor;  // 观测到该点的距离下限
         mfMinDistance = mfMaxDistance / pRefKF->mvScaleFactors[nLevels - 1];  // 观测到该点的距离上限
-        mNormalVector = normal / n;                               // 获得平均的观测方向
+        mNormalVector = normal / n;               // 获得平均的观测方向
     }
 }
 

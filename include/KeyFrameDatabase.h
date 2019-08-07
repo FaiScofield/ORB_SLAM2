@@ -21,12 +21,12 @@
 #ifndef KEYFRAMEDATABASE_H
 #define KEYFRAMEDATABASE_H
 
-#include <vector>
 #include <list>
 #include <set>
+#include <vector>
 
-#include "KeyFrame.h"
 #include "Frame.h"
+#include "KeyFrame.h"
 #include "ORBVocabulary.h"
 
 #include <mutex>
@@ -42,33 +42,32 @@ class Frame;
 class KeyFrameDatabase
 {
 public:
-
     KeyFrameDatabase(const ORBVocabulary &voc);
 
-   void add(KeyFrame* pKF);
+    void add(KeyFrame *pKF);
 
-   void erase(KeyFrame* pKF);
+    void erase(KeyFrame *pKF);
 
-   void clear();
+    void clear();
 
-   // Loop Detection
-   std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame* pKF, float minScore);
+    // Loop Detection
+    std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame *pKF, float minScore);
 
-   // Relocalization
-   std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
+    // Relocalization
+    std::vector<KeyFrame *> DetectRelocalizationCandidates(Frame *F);
 
 protected:
+    // Associated vocabulary
+    const ORBVocabulary *mpVoc;  ///< 预先训练好的词典
 
-  // Associated vocabulary
-  const ORBVocabulary* mpVoc; ///< 预先训练好的词典
+    // Inverted file
+    ///< 倒排索引，mvInvertedFile[i]表示包含了第i个词id的所有关键帧
+    std::vector<list<KeyFrame *>> mvInvertedFile;
 
-  // Inverted file
-  std::vector<list<KeyFrame*> > mvInvertedFile; ///< 倒排索引，mvInvertedFile[i]表示包含了第i个word id的所有关键帧
-
-  // Mutex
-  std::mutex mMutex;
+    // Mutex
+    std::mutex mMutex;
 };
 
-} //namespace ORB_SLAM
+}  // namespace ORB_SLAM
 
-#endif  //KEYFRAMEDATABASE_H
+#endif  // KEYFRAMEDATABASE_H
