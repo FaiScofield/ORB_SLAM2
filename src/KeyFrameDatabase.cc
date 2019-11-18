@@ -94,8 +94,7 @@ vector<KeyFrame *> KeyFrameDatabase::DetectLoopCandidates(KeyFrame *pKF, float m
 {
     // 提出所有与该pKF相连的KeyFrame，这些相连Keyframe都是局部相连，在闭环检测的时候将被剔除
     set<KeyFrame *> spConnectedKeyFrames = pKF->GetConnectedKeyFrames();
-    list<KeyFrame *>
-        lKFsSharingWords;  // 用于保存可能与pKF形成回环的候选帧（只要有相同的word，且不属于局部相连帧）
+    list<KeyFrame *> lKFsSharingWords;  // 用于保存可能与pKF形成回环的候选帧（只要有相同的word，且不属于局部相连帧）
 
     // Search all keyframes that share a word with current keyframes
     // Discard keyframes connected to the query keyframe
@@ -184,8 +183,7 @@ vector<KeyFrame *> KeyFrameDatabase::DetectLoopCandidates(KeyFrame *pKF, float m
              vit != vend; vit++) {
             KeyFrame *pKF2 = *vit;
             if (pKF2->mnLoopQuery == pKF->mnId && pKF2->mnLoopWords > minCommonWords) {
-                accScore +=
-                    pKF2->mLoopScore;              // 因为pKF2->mnLoopQuery==pKF->mnId，所以只有pKF2也在闭环候选帧中，才能贡献分数
+                accScore += pKF2->mLoopScore;      // 因为pKF2->mnLoopQuery==pKF->mnId，所以只有pKF2也在闭环候选帧中，才能贡献分数
                 if (pKF2->mLoopScore > bestScore)  // 统计得到组里分数最高的KeyFrame
                 {
                     pBestKF = pKF2;
@@ -237,8 +235,8 @@ vector<KeyFrame *> KeyFrameDatabase::DetectLoopCandidates(KeyFrame *pKF, float m
 vector<KeyFrame *> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
 {
     // 相对于关键帧的闭环检测DetectLoopCandidates，重定位检测中没法获得相连的关键帧
-    list<KeyFrame *>
-        lKFsSharingWords;  // 用于保存可能与F形成回环的候选帧（只要有相同的word，且不属于局部相连帧）
+    // 用于保存可能与F形成回环的候选帧（只要有相同的word，且不属于局部相连帧）
+    list<KeyFrame *> lKFsSharingWords;
 
     // Search all keyframes that share a word with current frame
     // 步骤1：找出和当前帧具有公共单词的所有关键帧
