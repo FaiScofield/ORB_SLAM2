@@ -441,7 +441,7 @@ void KeyFrame::UpdateConnections()
     }
 
     // vPairs里存的都是相互共视程度比较高的关键帧和共视权重，由大到小
-    sort(vPairs.begin(), vPairs.end());     //!@Vance: 由小到大吧?
+    sort(vPairs.begin(), vPairs.end());
     list<KeyFrame *> lKFs;
     list<int> lWs;
     for (size_t i = 0; i < vPairs.size(); i++) {
