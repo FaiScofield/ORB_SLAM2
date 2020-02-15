@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM2)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Debug)
+  SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
@@ -46,7 +46,7 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
-find_package(PCL 1.7 REQUIRED )
+# find_package(PCL 1.7 REQUIRED )
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -117,7 +117,7 @@ target_link_libraries(bin_vocabulary ${PROJECT_NAME})
 
 # Class homework
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/homework)
-add_executable(myvideo homework/myvideo.cpp)
-target_link_libraries(myvideo ${PROJECT_NAME})
-add_executable(match homework/match.cpp)
-target_link_libraries(match ${PROJECT_NAME})
+#add_executable(myvideo homework/myvideo.cpp)
+#target_link_libraries(myvideo ${PROJECT_NAME})
+#add_executable(match homework/match.cpp)
+#target_link_libraries(match ${PROJECT_NAME})
