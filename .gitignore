@@ -22,6 +22,7 @@ build/
 *~
 lib/
 bin/
+.vscode/
 *.mp4
 .vscode/
 _clang-format
