@@ -753,9 +753,8 @@ void LocalMapping::InterruptBA()
 
 /**
  * @brief 关键帧剔除
- *
- * 在Covisibility
- * Graph中的关键帧，其90%以上的MapPoints能被其他关键帧（至少3个）观测到，则认为该关键帧为冗余关键帧。
+ * 
+ * 在Covisibility Graph中的关键帧，其90%以上的MapPoints能被其他关键帧（至少3个）观测到，则认为该关键帧为冗余关键帧。
  * @see VI-E Local Keyframe Culling
  */
 void LocalMapping::KeyFrameCulling()

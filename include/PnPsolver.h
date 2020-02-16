@@ -112,15 +112,15 @@ class PnPsolver {
 
   void gauss_newton(const CvMat * L_6x10, const CvMat * Rho, double current_betas[4]);
   void compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
-				    double cb[4], CvMat * A, CvMat * b);
+                    double cb[4], CvMat * A, CvMat * b);
 
   double compute_R_and_t(const double * ut, const double * betas,
-			 double R[3][3], double t[3]);
+             double R[3][3], double t[3]);
 
   void estimate_R_and_t(double R[3][3], double t[3]);
 
   void copy_R_and_t(const double R_dst[3][3], const double t_dst[3],
-		    double R_src[3][3], double t_src[3]);
+            double R_src[3][3], double t_src[3]);
 
   void mat_to_quat(const double R[3][3], double q[4]);
 
@@ -131,7 +131,7 @@ class PnPsolver {
   int maximum_number_of_correspondences;
   int number_of_correspondences;
 
-  double cws[4][3], ccs[4][3];
+  double cws[4][3], ccs[4][3];  // Coordinate in World/Camera System
   double cws_determinant;
 
   vector<MapPoint*> mvpMapPointMatches;

@@ -1,10 +1,3 @@
-/*
- * @Author: Vance.Wu
- * @Date: 2019-09-11 17:56:15
- * @LastEditors: Vance.Wu
- * @LastEditTime: 2019-11-18 14:39:57
- * @Description: 
- */
 /**
 * This file is part of ORB-SLAM2.
 *
@@ -57,10 +50,10 @@ public:
     std::vector<MapPoint*> GetAllMapPoints();
     std::vector<MapPoint*> GetReferenceMapPoints();
 
-    long unsigned MapPointsInMap();
-    long unsigned KeyFramesInMap();
+    long unsigned int MapPointsInMap();
+    long unsigned  KeyFramesInMap();
 
-    long unsigned GetMaxKFid();
+    long unsigned int GetMaxKFid();
 
     void clear();
 
@@ -77,7 +70,7 @@ protected:
 
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
-    long unsigned mnMaxKFid;
+    long unsigned int mnMaxKFid;
 
     std::mutex mMutexMap;
 };

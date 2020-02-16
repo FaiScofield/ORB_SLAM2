@@ -230,7 +230,8 @@ void MapPoint::Replace(MapPoint *pMP)
     }
 
     // 所有能观测到该MapPoint的keyframe都要替换
-    for (auto mit = obs.begin(), mend = obs.end(); mit != mend; mit++) {
+    for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
+    {
         // Replace measurement in keyframe
         KeyFrame *pKF = mit->first;
 
@@ -318,8 +319,9 @@ void MapPoint::ComputeDistinctiveDescriptors()
     vDescriptors.reserve(observations.size());
 
     // 遍历观测到3d点的所有关键帧，获得orb描述子，并插入到vDescriptors中
-    for (auto mit = observations.begin(), mend = observations.end(); mit != mend; mit++) {
-        KeyFrame *pKF = mit->first;
+    for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+    {
+        KeyFrame* pKF = mit->first;
 
         if (!pKF->isBad())
             vDescriptors.push_back(pKF->mDescriptors.row(mit->second));
@@ -404,6 +406,9 @@ bool MapPoint::IsInKeyFrame(KeyFrame *pKF)
  * @brief 更新平均观测方向以及观测距离范围
  *
  * 由于一个MapPoint会被许多相机观测到，因此在插入关键帧后，需要更新相应变量
+ * mNormalVector：3D点被观测的平均方向
+ * mfMaxDistance：观测到该3D点的最大距离
+ * mfMinDistance：观测到该3D点的最小距离
  * @see III - C2.2 c2.4
  */
 void MapPoint::UpdateNormalAndDepth()
@@ -425,10 +430,11 @@ void MapPoint::UpdateNormalAndDepth()
     if (observations.empty())
         return;
 
-    cv::Mat normal = cv::Mat::zeros(3, 1, CV_32F);
-    int n = 0;
-    for (auto mit = observations.begin(), mend = observations.end(); mit != mend; mit++) {
-        KeyFrame *pKF = mit->first;
+    cv::Mat normal = cv::Mat::zeros(3,1,CV_32F);
+    int n=0;
+    for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+    {
+        KeyFrame* pKF = mit->first;
         cv::Mat Owi = pKF->GetCameraCenter();
         cv::Mat normali = mWorldPos - Owi;
         normal += normali / cv::norm(normali);  // 对所有关键帧对该点的观测方向归一化为单位向量进行求和
@@ -444,9 +450,9 @@ void MapPoint::UpdateNormalAndDepth()
     {
         unique_lock<mutex> lock3(mMutexPos);
         // 另见PredictScale函数前的注释
-        mfMaxDistance = dist * levelScaleFactor;  // 观测到该点的距离下限
-        mfMinDistance = mfMaxDistance / pRefKF->mvScaleFactors[nLevels - 1];  // 观测到该点的距离上限
-        mNormalVector = normal / n;               // 获得平均的观测方向
+        mfMaxDistance = dist*levelScaleFactor;                           // 观测到该点的距离最大值
+        mfMinDistance = mfMaxDistance/pRefKF->mvScaleFactors[nLevels-1]; // 观测到该点的距离最小值
+        mNormalVector = normal/n;                                        // 获得平均的观测方向
     }
 }
 

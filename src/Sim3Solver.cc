@@ -41,6 +41,7 @@ Sim3Solver::Sim3Solver(KeyFrame* pKF1, KeyFrame* pKF2, const vector<MapPoint*>& 
     vector<MapPoint*> vpKeyFrameMP1 = pKF1->GetMapPointMatches();
 
     mN1 = vpMatched12.size();
+    assert(vpKeyFrameMP1.size() == mN1); //! debug
 
     mvpMapPoints1.reserve(mN1);
     mvpMapPoints2.reserve(mN1);
@@ -57,11 +58,11 @@ Sim3Solver::Sim3Solver(KeyFrame* pKF1, KeyFrame* pKF2, const vector<MapPoint*>& 
     mvAllIndices.reserve(mN1);
 
     size_t idx = 0;
-    // mN1为pKF2特征点的个数
+    // mN1为pKF1特征点的个数
     for (int i1 = 0; i1 < mN1; i1++) {
-        // 如果该特征点在pKF1中有匹配
+        // 如果该特征点在pKF2中有对应的KP匹配
         if (vpMatched12[i1]) {
-            // pMP1和pMP2是匹配的MapPoint
+            // pMP1和pMP2是对应匹配的MapPoint
             MapPoint* pMP1 = vpKeyFrameMP1[i1];
             MapPoint* pMP2 = vpMatched12[i1];
             if (!pMP1)
@@ -69,15 +70,21 @@ Sim3Solver::Sim3Solver(KeyFrame* pKF1, KeyFrame* pKF2, const vector<MapPoint*>& 
             if (pMP1->isBad() || pMP2->isBad())
                 continue;
 
-            // indexKF1和indexKF2是匹配特征点的索引
+            // step2：计算允许的重投影误差阈值：mvnMaxError1和mvnMaxError2
+            // 注：是相对当前位姿投影3D点得到的图像坐标，见step6
+            // step2.1：根据匹配的MapPoint找到对应匹配特征点的索引：indexKF1和indexKF2
             int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);
             int indexKF2 = pMP2->GetIndexInKeyFrame(pKF2);
             if (indexKF1 < 0 || indexKF2 < 0)
                 continue;
+            assert(indexKF1 == i1); //! debug
+            assert(indexKF2 == vpMatched12[i1]); //! debug
 
-            // kp1和kp2是匹配特征点
-            const cv::KeyPoint& kp1 = pKF1->mvKeysUn[indexKF1];
-            const cv::KeyPoint& kp2 = pKF2->mvKeysUn[indexKF2];
+            // step2.2：取出匹配特征点的引用：kp1和kp2
+            const cv::KeyPoint &kp1 = pKF1->mvKeysUn[indexKF1];
+            const cv::KeyPoint &kp2 = pKF2->mvKeysUn[indexKF2];
+
+            // step2.3：根据特征点的尺度计算对应的误差阈值：mvnMaxError1和mvnMaxError2
             const float sigmaSquare1 = pKF1->mvLevelSigma2[kp1.octave];
             const float sigmaSquare2 = pKF2->mvLevelSigma2[kp2.octave];
             mvnMaxError1.push_back(9.210 * sigmaSquare1);  //? 9.210
@@ -88,21 +95,24 @@ Sim3Solver::Sim3Solver(KeyFrame* pKF1, KeyFrame* pKF2, const vector<MapPoint*>& 
             mvpMapPoints2.push_back(pMP2);
             mvnIndices1.push_back(i1);
 
+            // step4：将MapPoint从世界坐标系变换到相机坐标系：mvX3Dc1和mvX3Dc2
             cv::Mat X3D1w = pMP1->GetWorldPos();
             mvX3Dc1.push_back(Rcw1 * X3D1w + tcw1);
             cv::Mat X3D2w = pMP2->GetWorldPos();
             mvX3Dc2.push_back(Rcw2 * X3D2w + tcw2);
 
-            mvAllIndices.push_back(idx);
+            mvAllIndices.push_back(idx); // RASAC标记用
             idx++;
         }
     }
 
+    // step5：两个关键帧的内参
     mK1 = pKF1->mK;
     mK2 = pKF2->mK;
 
-    FromCameraToImage(mvX3Dc1, mvP1im1, mK1);
-    FromCameraToImage(mvX3Dc2, mvP2im2, mK2);
+    // step6：记录计算两针Sim3之前3D mappoint在图像上的投影坐标：mvP1im1和mvP2im2
+    FromCameraToImage(mvX3Dc1,mvP1im1,mK1);
+    FromCameraToImage(mvX3Dc2,mvP2im2,mK2);
 
     SetRansacParameters();
 }
@@ -133,7 +143,7 @@ void Sim3Solver::SetRansacParameters(double probability, int minInliers, int max
     mnIterations = 0;
 }
 
-// Ransac求解mvX3Dc1和mvX3Dc2之间Sim3，函数返回mvX3Dc2到mvX3Dc1的Sim3变换
+// Ransac求解mvX3Dc1和mvX3Dc2之间Sim3，函数返回mvX3Dc2到mvX3Dc1的Sim3变换, 即T12
 cv::Mat Sim3Solver::iterate(int nIterations, bool& bNoMore, vector<bool>& vbInliers, int& nInliers)
 {
     bNoMore = false;
@@ -195,6 +205,8 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool& bNoMore, vector<bool>& vbInli
                 for (int i = 0; i < N; i++)
                     if (mvbInliersi[i])
                         vbInliers[mvnIndices1[i]] = true;
+
+                // ！！！！！note: 1. 只要计算得到一次合格的Sim变换，就直接返回 2. 没有对所有的inlier进行一次refine操作
                 return mBestT12;
             }
         }
@@ -230,12 +242,11 @@ void Sim3Solver::ComputeSim3(cv::Mat& P1, cv::Mat& P2)
     // Custom implementation of:
     // Horn 1987, Closed-form solution of absolute orientataion using unit quaternions
 
-    // Step 1: Centroid and relative coordinates
-
-    cv::Mat Pr1(P1.size(), P1.type());  // Relative coordinates to centroid (set 1)
-    cv::Mat Pr2(P2.size(), P2.type());  // Relative coordinates to centroid (set 2)
-    cv::Mat O1(3, 1, Pr1.type());       // Centroid of P1
-    cv::Mat O2(3, 1, Pr2.type());       // Centroid of P2
+    // Step 1: Centroid and relative coordinates（模型坐标系）
+    cv::Mat Pr1(P1.size(),P1.type()); // Relative coordinates to centroid (set 1)
+    cv::Mat Pr2(P2.size(),P2.type()); // Relative coordinates to centroid (set 2)
+    cv::Mat O1(3,1,Pr1.type()); // Centroid of P1
+    cv::Mat O2(3,1,Pr2.type()); // Centroid of P2
 
     // O1和O2分别为P1和P2矩阵中3D点的质心
     // Pr1和Pr2为减去质心后的3D点
@@ -243,15 +254,11 @@ void Sim3Solver::ComputeSim3(cv::Mat& P1, cv::Mat& P2)
     ComputeCentroid(P2, Pr2, O2);
 
     // Step 2: Compute M matrix
-
     cv::Mat M = Pr2 * Pr1.t();
 
     // Step 3: Compute N matrix
-
     double N11, N12, N13, N14, N22, N23, N24, N33, N34, N44;
-
     cv::Mat N(4, 4, P1.type());
-
     N11 = M.at<float>(0, 0) + M.at<float>(1, 1) + M.at<float>(2, 2);
     N12 = M.at<float>(1, 2) - M.at<float>(2, 1);
     N13 = M.at<float>(2, 0) - M.at<float>(0, 2);
@@ -262,37 +269,29 @@ void Sim3Solver::ComputeSim3(cv::Mat& P1, cv::Mat& P2)
     N33 = -M.at<float>(0, 0) + M.at<float>(1, 1) - M.at<float>(2, 2);
     N34 = M.at<float>(1, 2) + M.at<float>(2, 1);
     N44 = -M.at<float>(0, 0) - M.at<float>(1, 1) + M.at<float>(2, 2);
-
     N = (cv::Mat_<float>(4, 4) << N11, N12, N13, N14, N12, N22, N23, N24, N13, N23, N33, N34, N14,
          N24, N34, N44);
 
 
     // Step 4: Eigenvector of the highest eigenvalue
-
     cv::Mat eval, evec;
-
     cv::eigen(N, eval, evec);  // evec[0] is the quaternion of the desired rotation
 
-    // N矩阵最大特征值（第一个特征值）对应特征向量就是要求的四元数死（q0 q1 q2 q3）
+    // N矩阵最大特征值（第一个特征值）对应特征向量就是要求的四元数（q0 q1 q2 q3）
     // 将(q1 q2 q3)放入vec行向量，vec就是四元数旋转轴乘以sin(ang/2)
     cv::Mat vec(1, 3, evec.type());
     (evec.row(0).colRange(1, 4)).copyTo(vec);  // extract imaginary part of the quaternion (sin*axis)
 
     // Rotation angle. sin is the norm of the imaginary part, cos is the real part
     double ang = atan2(norm(vec), evec.at<float>(0, 0));
-
     vec = 2 * ang * vec / norm(vec);  // Angle-axis representation. quaternion angle is the half
-
     mR12i.create(3, 3, P1.type());
-
     cv::Rodrigues(vec, mR12i);  // computes the rotation matrix from angle-axis
 
     // Step 5: Rotate set 2
-
     cv::Mat P3 = mR12i * Pr2;
 
     // Step 6: Scale
-
     if (!mbFixScale) {
         // 论文中还有一个求尺度的公式，p632右中的位置，那个公式不用考虑旋转
         double nom = Pr1.dot(P3);
@@ -307,20 +306,17 @@ void Sim3Solver::ComputeSim3(cv::Mat& P1, cv::Mat& P2)
             }
         }
 
-        ms12i = nom / den;
+        ms12i = nom / den; // 即模长之比
     } else
         ms12i = 1.0f;
 
     // Step 7: Translation
-
     mt12i.create(1, 3, P1.type());
     mt12i = O1 - ms12i * mR12i * O2;
 
     // Step 8: Transformation
-
     // Step 8.1 T12
     mT12i = cv::Mat::eye(4, 4, P1.type());
-
     cv::Mat sR = ms12i * mR12i;
 
     //         |sR t|
@@ -329,11 +325,8 @@ void Sim3Solver::ComputeSim3(cv::Mat& P1, cv::Mat& P2)
     mt12i.copyTo(mT12i.rowRange(0, 3).col(3));
 
     // Step 8.2 T21
-
     mT21i = cv::Mat::eye(4, 4, P1.type());
-
     cv::Mat sRinv = (1.0 / ms12i) * mR12i.t();
-
     sRinv.copyTo(mT21i.rowRange(0, 3).colRange(0, 3));
     cv::Mat tinv = -sRinv * mt12i;
     tinv.copyTo(mT21i.rowRange(0, 3).col(3));
@@ -347,7 +340,6 @@ void Sim3Solver::CheckInliers()
     Project(mvX3Dc1, vP1im2, mT21i, mK2);  // 把1系中的3D经过Sim3变换(mT21i)到2系中计算重投影坐标
 
     mnInliersi = 0;
-
     for (size_t i = 0; i < mvP1im1.size(); i++) {
         cv::Mat dist1 = mvP1im1[i] - vP2im1[i];
         cv::Mat dist2 = vP1im2[i] - mvP2im2[i];

@@ -102,6 +102,7 @@ public:
      * 通过距离阈值、比例阈值和角度投票进行剔除误匹配
      * @param  pKF               KeyFrame
      * @param  F                 Current Frame
+     * @param  pKF2              KeyFrame2
      * @param  vpMapPointMatches F中MapPoints对应的匹配，NULL表示未匹配
      * @return                   成功匹配的数量
      */

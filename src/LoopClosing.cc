@@ -372,8 +372,7 @@ bool LoopClosing::ComputeSim3()
                 // 步骤5：Sim3优化，只要有一个候选帧通过Sim3的求解与优化，就跳出停止对其它候选帧的判断
                 // OpenCV的Mat矩阵转成Eigen的Matrix类型
                 g2o::Sim3 gScm(Converter::toMatrix3d(R), Converter::toVector3d(t), s);
-                // 如果mbFixScale为true，则是6DoFf优化（双目
-                // RGBD），如果是false，则是7DoF优化（单目）
+                // 如果mbFixScale为true，则是6DoFf优化（双目,RGBD），如果是false，则是7DoF优化（单目）
                 // 优化mpCurrentKF与pKF对应的MapPoints间的Sim3，得到优化后的量gScm
                 const int nInliers = Optimizer::OptimizeSim3(
                     mpCurrentKF, pKF, vpMapPointMatches, gScm, 10, mbFixScale);  // 卡方chi2检验阈值

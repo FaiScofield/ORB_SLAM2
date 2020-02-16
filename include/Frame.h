@@ -87,7 +87,7 @@ public:
 
     // Check if a MapPoint is in the frustum of the camera
     // and fill variables of the MapPoint to be used by the tracking
-    // 判断MP是否在视野中
+    // 判断路标点是否在视野中
     bool isInFrustum(MapPoint *pMP, float viewingCosLimit);
 
     // Compute the cell of a keypoint (return false if outside the grid)
@@ -174,7 +174,7 @@ public:
     std::vector<bool> mvbOutlier;
 
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
-    // 坐标乘以mnvfGridElementWidthI和mfGridElementHeightInv就可以确定在哪个格子
+    // 坐标乘以mfGridElementWidthInv和mfGridElementHeightInv就可以确定在哪个格子
     static float mfGridElementWidthInv;
     static float mfGridElementHeightInv;
     // 每个格子分配的特征点数，将图像分成格子，保证提取的特征点比较均匀

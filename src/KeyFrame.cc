@@ -393,7 +393,8 @@ void KeyFrame::UpdateConnections()
         // 对于每一个MapPoint点，observations记录了可以观测到该MapPoint的所有关键帧
         map<KeyFrame *, size_t> observations = pMP->GetObservations();
 
-        for (auto mit = observations.begin(), mend = observations.end(); mit != mend; mit++) {
+        for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+        {
             // 除去自身，自己与自己不算共视
             if (mit->first->mnId == mnId)
                 continue;
@@ -416,9 +417,11 @@ void KeyFrame::UpdateConnections()
     // pair<int,KeyFrame*>将关键帧的权重写在前面，关键帧写在后面方便后面排序
     vector<pair<int, KeyFrame *>> vPairs;
     vPairs.reserve(KFcounter.size());
-    for (auto mit = KFcounter.begin(), mend = KFcounter.end(); mit != mend; mit++) {
-        if (mit->second > nmax) {
-            nmax = mit->second;
+    for(map<KeyFrame*,int>::iterator mit=KFcounter.begin(), mend=KFcounter.end(); mit!=mend; mit++)
+    {
+        if(mit->second>nmax)
+        {
+            nmax=mit->second;
             // 找到对应权重最大的关键帧（共视程度最高的关键帧）
             pKFmax = mit->first;
         }
@@ -587,28 +590,29 @@ void KeyFrame::SetBadFlag()
             KeyFrame *pP;
 
             // 遍历每一个子关键帧，让它们更新它们指向的父关键帧
-            for (auto sit = mspChildrens.begin(), send = mspChildrens.end(); sit != send; sit++) {
-                KeyFrame *pKF = *sit;
-                if (pKF->isBad())
+            for(set<KeyFrame*>::iterator sit=mspChildrens.begin(), send=mspChildrens.end(); sit!=send; sit++)
+            {
+                KeyFrame* pKF = *sit;
+                if(pKF->isBad())
                     continue;
 
                 // Check if a parent candidate is connected to the keyframe
                 // 子关键帧遍历每一个与它相连的关键帧（共视关键帧）
-                vector<KeyFrame *> vpConnected = pKF->GetVectorCovisibleKeyFrames();
-                for (size_t i = 0, iend = vpConnected.size(); i < iend; i++) {
-                    for (auto spcit = sParentCandidates.begin(), spcend = sParentCandidates.end();
-                         spcit != spcend; spcit++) {
-                        // 如果该帧的子节点和父节点（祖孙节点）之间存在连接关系（共视）
-                        // 举例：B-->A（B的父节点是A） C-->B（C的父节点是B） D--C（D与C相连）
-                        // E--C（E与C相连） F--C（F与C相连） D-->A（D的父节点是A）E-->A（E的父节点是A）
-                        //      现在B挂了，于是C在与自己相连的D、E、F节点中找到父节点是指向A的节点(这里是D)
-                        //      此过程就是为了找到可以替换B的那个节点。
-                        // 上面例子中，B为当前要设置为SetBadFlag的关键帧
-                        //           A为spcit，也即sParentCandidates
-                        //           C为pKF,pC，也即mspChildrens中的一个
-                        //           D、E、F为vpConnected中的变量，由于C与D间的权重比C与E间的权重大，因此D为pP
-                        //!@Vance: 这里应该是vpConnected[i]->mpParent->mnId？
-                        if (vpConnected[i]->mnId == (*spcit)->mnId) {
+                vector<KeyFrame*> vpConnected = pKF->GetVectorCovisibleKeyFrames();
+                for(size_t i=0, iend=vpConnected.size(); i<iend; i++)
+                {
+                    for(set<KeyFrame*>::iterator spcit=sParentCandidates.begin(), spcend=sParentCandidates.end(); spcit!=spcend; spcit++)
+                    {
+                    // 如果该帧的子节点和父节点（祖孙节点）之间存在连接关系（共视）
+                    // 举例：B-->A（B的父节点是A） C-->B（C的父节点是B） D--C（D与C相连） E--C（E与C相连） F--C（F与C相连） D-->A（D的父节点是A） E-->A（E的父节点是A）
+                    //      现在B挂了，于是C在与自己相连的D、E、F节点中找到父节点指向A的D
+                    //      此过程就是为了找到可以替换B的那个节点。
+                    // 上面例子中，B为当前要设置为SetBadFlag的关键帧
+                    //           A为spcit，也即sParentCandidates
+                    //           C为pKF,pC，也即mspChildrens中的一个
+                    //           D、E、F为vpConnected中的变量，由于C与D间的权重 比 C与E间的权重大，因此D为pP
+                        if(vpConnected[i]->mnId == (*spcit)->mnId)
+                        {
                             int w = pKF->GetWeight(vpConnected[i]);
                             if (w > max) {
                                 pC = pKF;
@@ -635,9 +639,10 @@ void KeyFrame::SetBadFlag()
         // If a children has no covisibility links with any parent candidate, assign to the original
         // parent of this KF
         // 如果还有子节点没有找到新的父节点
-        if (!mspChildrens.empty())
-            for (auto sit = mspChildrens.begin(); sit != mspChildrens.end(); sit++) {
-                // 那就直接把父节点的父节点作为自己的父节点
+        if(!mspChildrens.empty())
+            for(set<KeyFrame*>::iterator sit=mspChildrens.begin(); sit!=mspChildrens.end(); sit++)
+            {
+                // 直接把父节点的父节点作为自己的父节点
                 (*sit)->ChangeParent(mpParent);
             }
 
